@@ -1,5 +1,8 @@
 package run;
 
+
+import org.apache.commons.lang3.SerializationUtils;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -10,7 +13,7 @@ import java.util.Set;
 
 public class EchoServer {
 
-    private static final String POISON_PILL = "POISON_PILL";
+    private static final String POISON_PILL = "exit";
 
     public static void main(String[] args) throws IOException {
         Selector selector = Selector.open();
@@ -35,6 +38,7 @@ public class EchoServer {
                 if (key.isReadable()) {
                     answerWithEcho(buffer, key);
                 }
+
                 iter.remove();
             }
         }
@@ -42,17 +46,29 @@ public class EchoServer {
 
     private static void answerWithEcho(ByteBuffer buffer, SelectionKey key)
             throws IOException {
-
         SocketChannel client = (SocketChannel) key.channel();
         int r = client.read(buffer);
-        if (r == -1 || new String(buffer.array()).trim().equals(POISON_PILL)) {
+
+        //deserialization
+        Message message = SerializationUtils.deserialize(buffer.array());
+        System.out.println(message.getMessage());
+
+
+        //serialization
+        byte[] objectBytes = SerializationUtils.serialize(message);
+        buffer = ByteBuffer.wrap(objectBytes);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(objectBytes);
+
+        if (r == -1 || message.getMessage().equals(POISON_PILL)) {
+            System.out.println(String.format(
+                    "Not accepting client %s messages anymore", client.getRemoteAddress()));
             client.close();
-            System.out.println("Not accepting client messages anymore");
         }
         else {
             buffer.flip();
-            client.write(buffer);
+            client.write(byteBuffer);
             buffer.clear();
+            byteBuffer.clear();
         }
     }
 
@@ -64,16 +80,5 @@ public class EchoServer {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public static Process start() throws IOException, InterruptedException {
-        String javaHome = System.getProperty("java.home");
-        String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
-        String classpath = System.getProperty("java.class.path");
-        String className = EchoServer.class.getCanonicalName();
-
-        ProcessBuilder builder = new ProcessBuilder(javaBin, "-cp", classpath, className);
-
-        return builder.start();
     }
 }
