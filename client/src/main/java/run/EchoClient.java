@@ -45,28 +45,30 @@ public class EchoClient {
     }
 
     public String sendMessage(String msg) {
+//        if (!client.isConnected())
+//            return null;
         Message response = null;
         try {
             Message message = new Message(msg);
+
             //serialization
             byte[] objectBytes = SerializationUtils.serialize(message);
             buffer = ByteBuffer.wrap(objectBytes);
-
+            //
 
             client.write(buffer);
             buffer.clear();
-            client.read(buffer);
-            System.out.println("%%%%%%%%%");
 
+            client.read(buffer);
 
             //deserialization
             response = SerializationUtils.deserialize(buffer.array());
-
-//            response = new String(buffer.array()).trim();
-            System.out.println("response=" + response.getMessage());
             buffer.clear();
+            //
+
+            System.out.println("response=" + response.getMessage());
         } catch (IOException e) {
-            e.printStackTrace();
+            return null;
         }
         return response.getMessage();
     }

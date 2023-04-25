@@ -3,7 +3,7 @@ package run;
 
 import org.apache.commons.lang3.SerializationUtils;
 
-import java.io.File;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -51,13 +51,16 @@ public class EchoServer {
 
         //deserialization
         Message message = SerializationUtils.deserialize(buffer.array());
+        buffer.clear();
+        //
+
         System.out.println(message.getMessage());
 
 
         //serialization
         byte[] objectBytes = SerializationUtils.serialize(message);
         buffer = ByteBuffer.wrap(objectBytes);
-        ByteBuffer byteBuffer = ByteBuffer.wrap(objectBytes);
+        //
 
         if (r == -1 || message.getMessage().equals(POISON_PILL)) {
             System.out.println(String.format(
@@ -65,10 +68,8 @@ public class EchoServer {
             client.close();
         }
         else {
-            buffer.flip();
-            client.write(byteBuffer);
+            client.write(buffer);
             buffer.clear();
-            byteBuffer.clear();
         }
     }
 
